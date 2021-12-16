@@ -17,6 +17,10 @@ const uint8_t buzzerPin = 11;
 //brightness
 const int displayBrightness = 2;
 const int lGreenBrightness = 15;
+//buzzer
+const int buzzerPitch = 1000;
+const int buzzerDelay = 100;
+const int buzzerDuration = 100;
 
 //CREATE VARIABLES
 //Mode manipulation
@@ -24,26 +28,19 @@ int mode = 0; //0-show time, 1-set alarm, 2-execute alarm
 int m1Setting = 0; //0-set hours, 1-set minutes
 int m1Cycle = 0; 
 int m0Cycle = 0;
-int lGreenBlink = 0;
+bool lGreenBlink = 0;
 //Pin states
 bool b1State = 0;
 bool b2State = 0;
 bool b3State = 0;
 bool b4State = 0;
 bool switchState = 0;
-//Buzzer
-int buzzerPitch = 1000;
-int buzzerDelay = 500;
-int buzzerDelay2 = 100;
-int buzzerDuration = 500;
-int buzzerDuration2 = 100;
-int currentBuzzer = 0;
 //Rtc
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 //Alarm
-bool alarmState = 0;
-int alarmHour = 0;
-int alarmMinute = 0;
+bool alarmEnabled = 0;
+uint8_t alarmHour = 0;
+uint8_t alarmMinute = 0;
 
 //CREATE OBJECTS
 TM1637Display display = TM1637Display(CLK, DIO);
@@ -57,39 +54,28 @@ void checkButtons(){ //checks states of all buttons and switches and stores them
   b4State = !digitalRead(b4Pin);
   switchState = !digitalRead(switchPin);
 }
+
 void displayTime(){ //displays current time on the display
   DateTime now = rtc.now();
 
-  
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.println();
-  
-  
   display.showNumberDecEx(now.hour(), 0b11100000, true, 2, 0);
   display.showNumberDecEx(now.minute(), 0b11100000, true, 2, 2);
 }
-void displayAlarm(){ //displays the time of the alarm
-  /*
-  Serial.print(alarmHour);
-  Serial.print(':');
-  Serial.print(alarmMinute);
-  Serial.println();
-  */
 
+void displayAlarm(){ //displays the time of the alarm
   display.showNumberDecEx(alarmHour, 0b11100000, true, 2, 0);
   display.showNumberDecEx(alarmMinute, 0b11100000, true, 2, 2);
 }
-void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmState variable and manages the green led accordingly
+
+void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the green led accordingly
   if(switchState && alarmHour + alarmMinute != 0){
-    analogWrite(lGreenPin, lGreenBrightness);
-    alarmState = 1; 
+    alarmEnabled = 1; 
   } else{
-    analogWrite(lGreenPin, 0);
-    alarmState = 0; 
+    alarmEnabled = 0; 
   }
+  analogWrite(lGreenPin, alarmEnabled * lGreenBrightness);
 }
+
 void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes mode to 0(shows time normally)
   m1Setting ++;
   //m1Cycle = 0;
@@ -100,6 +86,7 @@ void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes
     tone(buzzerPin, 1500, 100);
   }
 }
+
 void alarmAdjustment(){ //checks if the buttons + or - are pressed, than it adjusts the alarm hour or minute(that is declared by m1Setting)
   if(b2State){
     if(m1Setting == 0){
@@ -123,37 +110,20 @@ void alarmAdjustment(){ //checks if the buttons + or - are pressed, than it adju
       alarmMinute --;
       if(alarmMinute < 0){
         alarmMinute = 59;
-      }
-    }
-  }
-}
+}}}}
+
 void blinkLGreen(){ //simply inverts the state of the green led
-  if(lGreenBlink){
-    digitalWrite(lGreenPin, 0);
-    lGreenBlink = 0;
-  }else{
-    digitalWrite(lGreenPin, 1);
-    lGreenBlink = 1;
-  }
-}
-void startAlarm(){ //starts the alarm by changing the mode to 2
-  mode = 2;
+  analogWrite(lGreenPin, (!lGreenBlink)*lGreenBrightness);
+  lGreenBlink = !lGreenBlink;
 }
 
-void makeNoise(){ //makes the passive buzzer do annoying things to wake you up (it beeps), also it has two """melodies""" available, the second switch determines which one should be playing
-  if(false){
+void makeNoise(){ 
+  for (int i = 0; i < 4; i++)
+  {
     tone(buzzerPin, buzzerPitch, buzzerDuration);
     delay(buzzerDuration + buzzerDelay);
-  }else{
-    tone(buzzerPin, buzzerPitch, buzzerDuration2);
-    delay(buzzerDuration2 + buzzerDelay2);
-    tone(buzzerPin, buzzerPitch, buzzerDuration2);
-    delay(buzzerDuration2 + buzzerDelay2);
-    tone(buzzerPin, buzzerPitch, buzzerDuration2);
-    delay(buzzerDuration2 + buzzerDelay2);
-    tone(buzzerPin, buzzerPitch, buzzerDuration2);
-    delay(buzzerDuration2 + buzzerDelay);
   }
+  delay(400);
 }
 
 
@@ -188,7 +158,7 @@ void loop() {
   
   while(mode == 0){ //this mode just displays the time, and checks the buttons to react accordingly
     checkButtons(); //stores button states in variables
-    checkAlarmSwitch(); //checks if alarm is enabled or not, than it sets the alarmState variable and manages the green led accordingly
+    checkAlarmSwitch(); //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the green led accordingly
     DateTime now = rtc.now(); //stores the current time in "now"
     if(b4State){ //if the fourth(alarm) button is pressed, it displays the time of the alarm, otherwise it just normally displays the current time
       displayAlarm();
@@ -201,8 +171,8 @@ void loop() {
       tone(buzzerPin, 1500, 100); //makes the buzzer to do a fast beep
       m1Cycle = 0; //similar to m0Cycle, it makes the timing just right, dont care about it
     }
-    if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmState && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
-      startAlarm();
+    if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmEnabled && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
+      mode = 2;
     }
     delay(50); //added delay so the microcontroller doesnt fly away
     if(m0Cycle <= 1200){
