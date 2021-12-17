@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <TM1637Display.h>
 #include "RTClib.h"
+#include <EEPROM.h>
 
 //CONSTANTS
 //pins
@@ -68,7 +69,7 @@ void displayAlarm(){ //displays the time of the alarm
 }
 
 void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the led accordingly
-  if(switchState && alarmHour + alarmMinute != 0){
+  if(switchState){
     alarmEnabled = 1; 
   } else{
     alarmEnabled = 0; 
@@ -80,10 +81,12 @@ void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes
   m1Setting ++;
   //m1Cycle = 0;
   if(m1Setting == 2){
+    EEPROM.write(24, alarmHour);
+    EEPROM.write(25, alarmMinute);
     mode = 0;
-    tone(buzzerPin, 1500, 400);
+    tone(buzzerPin, buzzerPitch, 400);
   }else{
-    tone(buzzerPin, 1500, 100);
+    tone(buzzerPin, buzzerPitch, 100);
   }
 }
 
@@ -150,6 +153,9 @@ void setup() {
   //set the time of the rtc module by one of these lines
   //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   //rtc.adjust(DateTime(2020, 2, 14, 20, 57));
+  
+  alarmHour = EEPROM.read(24);
+  alarmMinute = EEPROM.read(25);
   }
 
 
@@ -169,7 +175,7 @@ void loop() {
     if(b1State){ //if the user "set alarm" button, the mode switches to 1
       mode = 1;
       m1Setting = 0; //starts by setting hours, than changed by switchM1Setting()
-      tone(buzzerPin, 1500, 100); //beep
+      tone(buzzerPin, buzzerPitch, 100); //beep
       m1Cycle = 0; //similar to m0Cycle, it makes the timing just right, dont care about it
     }
     if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmEnabled && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
