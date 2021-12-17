@@ -10,13 +10,13 @@ const uint8_t b2Pin = 2;
 const uint8_t b3Pin = 3;
 const uint8_t b4Pin = 4;
 const uint8_t switchPin = 8;
-const uint8_t lGreenPin = 6;
+const uint8_t ledPin = 6;
 const uint8_t buzzerPin = 11;
 #define CLK 12
 #define DIO 10
 //brightness
 const int displayBrightness = 2;
-const int lGreenBrightness = 15;
+const int ledBrightness = 15;
 //buzzer
 const int buzzerPitch = 1000;
 const int buzzerDelay = 100;
@@ -30,7 +30,7 @@ int mode = 0; //0-show time, 1-set alarm, 2-execute alarm
 int m1Setting = 0; //0-set hours, 1-set minutes
 int m1Cycle = 0; 
 int m0Cycle = 0;
-bool lGreenState = 0;
+bool ledState = 0;
 //Pin states
 bool b1State = 0;
 bool b2State = 0;
@@ -67,13 +67,13 @@ void displayAlarm(){ //displays the time of the alarm
   display.showNumberDecEx(alarmMinute, 0b11100000, true, 2, 2);
 }
 
-void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the green led accordingly
+void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the led accordingly
   if(switchState && alarmHour + alarmMinute != 0){
     alarmEnabled = 1; 
   } else{
     alarmEnabled = 0; 
   }
-  analogWrite(lGreenPin, alarmEnabled*lGreenBrightness);
+  analogWrite(ledPin, alarmEnabled*ledBrightness);
 }
 
 void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes mode to 0(shows time normally)
@@ -112,15 +112,18 @@ void alarmAdjustment(){ //checks if the buttons + or - are pressed, than it adju
         alarmMinute = 59;
 }}}}
 
-void blinkLGreen(){ //simply inverts the state of the green led
-  analogWrite(lGreenPin, (!lGreenState)*lGreenBrightness);
-  lGreenState = !lGreenState;
+void blinkLed(){ //simply inverts the state of the led
+  analogWrite(ledPin, (!ledState)*ledBrightness);
+  ledState = !ledState;
 }
 
 void makeNoise(){ 
   for (int i = 0; i < 4; i++){
     tone(buzzerPin, buzzerPitch, buzzerDuration);
-    delay(buzzerDuration + buzzerDelay);
+    analogWrite(ledPin, ledBrightness);
+    delay(buzzerDuration);
+    analogWrite(ledPin, 0);
+    delay(buzzerDelay);
   }
   delay(400);
 }
@@ -132,7 +135,7 @@ void setup() {
   pinMode(b3Pin, INPUT_PULLUP);
   pinMode(b4Pin, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP);
-  pinMode(lGreenPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
 
   display.clear();
@@ -152,27 +155,27 @@ void setup() {
 
 void loop() {
   readButtons();
-  m0Cycle = 0; //this variable counts the number of cycles that the next while loop has gone through, it is confusing (even for me, now that i am commenting this code) but very important
+  m0Cycle = 0;
   
   while(mode == 0){ //this mode just displays the time, and checks the buttons to react accordingly
     readButtons();
-    checkAlarmSwitch(); //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the green led accordingly
+    checkAlarmSwitch(); //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the led accordingly
     DateTime now = rtc.now(); //stores the current time in "now"
     if(b4State){ //if the fourth(alarm) button is pressed, it displays the time of the alarm, otherwise it just normally displays the current time
       displayAlarm();
     }else{
       displayTime();
     }
-    if(b1State){ //if the user wants to set the time of the alarm and presses the first (set) button, the mode switches to 1
+    if(b1State){ //if the user "set alarm" button, the mode switches to 1
       mode = 1;
       m1Setting = 0; //starts by setting hours, than changed by switchM1Setting()
-      tone(buzzerPin, 1500, 100); //makes the buzzer to do a fast beep
+      tone(buzzerPin, 1500, 100); //beep
       m1Cycle = 0; //similar to m0Cycle, it makes the timing just right, dont care about it
     }
     if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmEnabled && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
       mode = 2;
     }
-    delay(50); //added delay so that the microcontroller doesnt fly away
+    delay(50); //cycle delay
     if(m0Cycle <= 1200){
       m0Cycle ++;
     }
@@ -182,7 +185,7 @@ void loop() {
     readButtons();
     alarmAdjustment(); //checks if the buttons + or - are pressed, than it adjusts the alarm hour or minute(that is declared by m1Setting)
     displayAlarm(); //displays the time of the alarm
-    blinkLGreen(); //simply inverts the state of the green led so it blinks each two cycles
+    blinkLed(); //simply inverts the state of the led
     delay(200);
     if(b1State && m1Cycle){ //if the user confirms than it moves onto setting minutes, after second confirmation it switches to mode 0 (showing time)
       switchM1Setting();
