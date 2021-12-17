@@ -40,8 +40,8 @@ bool b4State = 0;
 bool switchState = 0;
 //Alarm
 bool alarmEnabled = 0;
-uint8_t alarmHour = 0;
-uint8_t alarmMinute = 0;
+int alarmHour = 0;
+int alarmMinute = 0;
 
 //OBJECTS
 TM1637Display display = TM1637Display(CLK, DIO);
