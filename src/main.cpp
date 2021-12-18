@@ -16,8 +16,9 @@ const uint8_t buzzerPin = 11;
 #define CLK 12
 #define DIO 10
 //brightness
-const int displayBrightness = 2;
+const uint8_t displayBrightness = 2;
 const int ledBrightness = 15;
+const unsigned long nightModeButtonPressLength = 3800; 
 //buzzer
 const int buzzerPitch = 1000;
 const int buzzerDelay = 100;
@@ -32,11 +33,14 @@ int m1Setting = 0; //0-set hours, 1-set minutes
 int m1Cycle = 0; 
 int m0Cycle = 0;
 bool ledState = 0;
+bool nightMode = 0;
 //Pin states
 bool b1State = 0;
 bool b2State = 0;
 bool b3State = 0;
 bool b4State = 0;
+bool b4PreviousState = 0;
+unsigned long b4PressTime = 0;
 bool switchState = 0;
 //Alarm
 bool alarmEnabled = 0;
@@ -74,7 +78,7 @@ void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the a
   } else{
     alarmEnabled = 0; 
   }
-  analogWrite(ledPin, alarmEnabled*ledBrightness);
+  analogWrite(ledPin, (!nightMode)*alarmEnabled*ledBrightness);
 }
 
 void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes mode to 0(shows time normally)
@@ -116,8 +120,8 @@ void alarmAdjustment(){ //checks if the buttons + or - are pressed, than it adju
 }}}}
 
 void blinkLed(){ //simply inverts the state of the led
-  analogWrite(ledPin, (!ledState)*ledBrightness);
   ledState = !ledState;
+  analogWrite(ledPin, (!nightMode)*ledState*ledBrightness);
 }
 
 void makeNoise(){ 
@@ -167,6 +171,14 @@ void loop() {
     readButtons();
     checkAlarmSwitch(); //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the led accordingly
     DateTime now = rtc.now(); //stores the current time in "now"
+    if(b4State != b4PreviousState){
+      if(b4State){
+        b4PressTime = millis();
+      }else if(millis() - b4PressTime >= nightModeButtonPressLength){
+        nightMode = !nightMode;
+        display.setBrightness((!nightMode)*displayBrightness);
+      }
+    }
     if(b4State){ //if the fourth(alarm) button is pressed, it displays the time of the alarm, otherwise it just normally displays the current time
       displayAlarm();
     }else{
@@ -180,7 +192,9 @@ void loop() {
     }
     if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmEnabled && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
       mode = 2;
+      nightMode = 0;
     }
+    b4PreviousState = b4State;
     delay(50); //cycle delay
     if(m0Cycle <= 1200){
       m0Cycle ++;
