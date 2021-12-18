@@ -7,7 +7,7 @@ The code is a mess. I wanted to complete the project before christmass so I used
 The final prototype on a breadboard:
 ![breadboard prototype](https://github.com/adamvotocek/3DprintedAlarmClock/blob/master/images/breadboardPrototype.jpg)
 
-I moved the buttons, the buzzer and the LED on a protoboard. I made a mistake by choosing a single-sided one, so the soldering is a mess.
+I moved the buttons, the buzzer and the LED onto a protoboard. I made a mistake by choosing a single-sided board so the soldering is a mess.
 The front of the control board. I drilled the three remaining holes later:
 ![control board front](https://github.com/adamvotocek/3DprintedAlarmClock/blob/master/images/controlBoardFront.jpg)
 The back of the control board:
