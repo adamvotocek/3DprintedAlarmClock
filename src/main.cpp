@@ -6,10 +6,10 @@
 
 //CONSTANTS
 //pins
-const uint8_t b1Pin = 5;
-const uint8_t b2Pin = 2;
-const uint8_t b3Pin = 3;
-const uint8_t b4Pin = 4;
+const uint8_t b1Pin = 5; //button to set the alarm
+const uint8_t b2Pin = 2; //"plus" button
+const uint8_t b3Pin = 3; //"minus" button
+const uint8_t b4Pin = 4; //top button
 const uint8_t switchPin = 8;
 const uint8_t ledPin = 6;
 const uint8_t buzzerPin = 11;
@@ -35,10 +35,10 @@ int m0Cycle = 0;
 bool ledState = 0;
 bool nightMode = 0;
 //Pin states
-bool b1State = 0;
-bool b2State = 0;
-bool b3State = 0;
-bool b4State = 0;
+bool b1State = 0; //button to set the alarm
+bool b2State = 0; //"plus" button
+bool b3State = 0; //"minus" button
+bool b4State = 0; //top button
 bool b4PreviousState = 0;
 unsigned long b4PressTime = 0;
 bool switchState = 0;
@@ -52,7 +52,7 @@ TM1637Display display = TM1637Display(CLK, DIO);
 RTC_DS3231 rtc;
 
 //DEFINE FUNCTIONS
-void readButtons(){ //checks states of all buttons and switches and stores them in variables (the states are flipped, because I am using internal pullup resistors)
+void readButtons(){ //stores the states in variables (they are flipped, because I am using internal pullup resistors)
   b1State = !digitalRead(b1Pin);
   b2State = !digitalRead(b2Pin);
   b3State = !digitalRead(b3Pin);
@@ -60,19 +60,19 @@ void readButtons(){ //checks states of all buttons and switches and stores them 
   switchState = !digitalRead(switchPin);
 }
 
-void displayTime(){ //displays current time on the display
+void displayTime(){
   DateTime now = rtc.now();
 
   display.showNumberDecEx(now.hour(), 0b11100000, true, 2, 0);
   display.showNumberDecEx(now.minute(), 0b11100000, true, 2, 2);
 }
 
-void displayAlarm(){ //displays the time of the alarm
+void displayAlarm(){
   display.showNumberDecEx(alarmHour, 0b11100000, true, 2, 0);
   display.showNumberDecEx(alarmMinute, 0b11100000, true, 2, 2);
 }
 
-void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the alarmEnabled variable and manages the led accordingly
+void checkAlarmSwitch(){ //turns the alarm and its LED on or off according to the switch
   if(switchState){
     alarmEnabled = 1; 
   } else{
@@ -83,9 +83,8 @@ void checkAlarmSwitch(){ //checks if alarm is enabled or not, than it sets the a
 
 void switchM1Setting(){ //adds 1 to m1Setting, if it is bigger than 1 it changes mode to 0(shows time normally)
   m1Setting ++;
-  //m1Cycle = 0;
   if(m1Setting == 2){
-    EEPROM.write(24, alarmHour);
+    EEPROM.write(24, alarmHour); //saves the alarm into the EEPROM
     EEPROM.write(25, alarmMinute);
     mode = 0;
     tone(buzzerPin, buzzerPitch, 400);
@@ -188,7 +187,7 @@ void loop() {
       mode = 1;
       m1Setting = 0; //starts by setting hours, than changed by switchM1Setting()
       tone(buzzerPin, buzzerPitch, 100); //beep
-      m1Cycle = 0; //similar to m0Cycle, it makes the timing just right, dont care about it
+      m1Cycle = 0; //similar to m0Cycle, it makes the timing just right, at this point I have no idea what it does and I am afraid to touch it
     }
     if(now.hour() == alarmHour && now.minute() == alarmMinute && alarmEnabled && m0Cycle >= 1200){ //if the time of the alarm matches current time and alarm is turned on it starts the alarm sequence, also some m0Cycle mystery whatever 
       mode = 2;
@@ -220,8 +219,8 @@ void loop() {
   
   while(mode == 2){ //this mode is the alarm sequence
     readButtons(); 
-    makeNoise(); //makes the passive buzzer do annoying things to wake you up (it beeps), also it has two """melodies""" available, the second switch determines which one should be playing
-    displayTime(); //displays current time
+    makeNoise(); //the buzzer beeps and the led flashes
+    displayTime(); 
     if(b4State){ //if button four (alarm) state is 1 it sets the mode to 0 (displaying time)
       mode = 0;
     }
