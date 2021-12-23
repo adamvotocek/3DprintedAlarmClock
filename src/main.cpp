@@ -16,7 +16,7 @@ const uint8_t buzzerPin = 11;
 #define CLK 12
 #define DIO 10
 //brightness
-const uint8_t displayBrightness = 2;
+const uint8_t displayBrightness = 1;
 const int ledBrightness = 1;
 const unsigned long nightModeButtonPressLength = 3800; 
 //buzzer
