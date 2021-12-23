@@ -17,7 +17,7 @@ const uint8_t buzzerPin = 11;
 #define DIO 10
 //brightness
 const uint8_t displayBrightness = 2;
-const int ledBrightness = 15;
+const int ledBrightness = 1;
 const unsigned long nightModeButtonPressLength = 3800; 
 //buzzer
 const int buzzerPitch = 1000;
@@ -155,7 +155,7 @@ void setup() {
   }
   //set the time of the rtc module by one of these lines
   //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  //rtc.adjust(DateTime(2020, 2, 14, 20, 57));
+  //rtc.adjust(DateTime(2021, 12, 22, 19, 12));
   
   alarmHour = EEPROM.read(24);
   alarmMinute = EEPROM.read(25);
